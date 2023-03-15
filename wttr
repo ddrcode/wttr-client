@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Credits
+# 1. Testing with grep whether an array contains an element:
+#    https://stackoverflow.com/a/47541882/881972
+# 2. Elegant way of parsing config file:
+#    https://unix.stackexchange.com/a/331965/565444
+#
+
+CONFIG_FILE="$HOME/.config/wttr/wttr.conf"
+
+config_read_file() {
+  (grep -E "^${2}=" -m 1 "${1}" 2>/dev/null || echo "VAR=__UNDEFINED__") \
+    | head -n 1 | cut -d '=' -f 2-
+}
+
+# credit to https://unix.stackexchange.com/questions/175648/use-config-file-for-my-shell-script
+config_get() {
+  local val="$(config_read_file "$CONFIG_FILE" "${1}")"
+  if [ "${val}" = "__UNDEFINED__" ]; then
+    val="$2"
+  fi
+  printf -- "%s" "${val}"
+}
+
+check_values() {
+  local argv=("$@")
+  local val="${argv[0]}"
+  local arr=("${argv[@]:1}")
+  if ! printf '%s\0' "${arr[@]}" | grep -Fxqz -- "$val"; then
+      echo "Unrecognized value: $val. Allowed values: ${arr[@]}"
+      exit 1
+  fi
+}
+
+CITY="$(config_get DEFAULT_LOCATION '')"
+OUTPUT="$(config_get OUTPUT 'auto')"
+UNITS="$(config_get UNITS 'auto')"
+ENGINE="$(config_get ENGINE 'curl')"
+
+
+# see https://unix.stackexchange.com/questions/129391/passing-named-arguments-to-shell-scripts
+# for reference
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --city*|-c*)
+      if [[ "$1" != *=* ]]; then shift; fi # Value is next arg if no `=`
+      CITY="${1#*=}"
+      ;;
+    --engine|-e)
+      if [[ "$1" != *=* ]]; then shift; fi
+      ENGINE="${1#*=}"
+      ;;
+    --help|-h)
+      printf "Meaningless help message\n"
+      exit 0
+      ;;
+    --text|-t)
+      OUTPUT="text"
+      ;;
+    --units|-u)
+      if [[ "$1" != *=* ]]; then shift; fi
+      UNITS="${1#*=}"
+      ;;
+    *)
+      >&2 printf "Error: Invalid argument $1\n"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+ALLOWED_UNITS=('u' 'm' 'M' 'auto')
+ALLOWED_OUTPUTS=('auto' 'text' 'png' 'json')
+
+check_values "$UNITS" "${ALLOWED_UNITS[@]}"
+check_values "$OUTPUT" "${ALLOWED_OUTPUTS[@]}"
+
+URL="https://wttr.in/${CITY}"
+EXEC="$ENGINE"
+
+if [[ "$OUTPUT" != "text" && "$TERM"=="xterm-kitty" ]] && which -s magick; then
+    EXEC="kitty icat --align=left"
+    URL="${URL}.png"
+fi
+
+$EXEC $URL
+
