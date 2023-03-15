@@ -2,16 +2,15 @@
 
 This is a simple Bash client for [wttr.in](https://wttr.in) - a phenomenal weather service that
 produces terminal-friendly output:
-![Current weather in London](https://wttr.in/London)
+![Current weather in London](https://wttr.in/London.png)
 
 This tiny client is a convenient replacement for `curl` calls, i.e.:
 
-| Operation | With curl | With wttr client |
+| Operation | With `curl` | With wttr client |
 | ---- | ---- | ----- |
 | Weather for current location | `curl wttr.in` | `wttr` |
 | Weather for London | `curl wttr.in/London` | `wttr London` |
-| Get weather as JSON and color it with bat | `curl wttr.in/London?format=j1 | bat -j json` | wttr
--o json London` |
+| Get weather as JSON and color it with bat | `curl wttr.in/London?format=j1 \| bat -j json` | `wttr -o json London` |
 
 ## Features
 
