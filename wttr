@@ -2,35 +2,35 @@
 
 # Credits
 # 1. Testing with grep whether an array contains an element:
-#    https://stackoverflow.com/a/47541882/881972
+#        https://stackoverflow.com/a/47541882/881972
 # 2. Elegant way of parsing config file:
-#    https://unix.stackexchange.com/a/331965/565444
+#        https://unix.stackexchange.com/a/331965/565444
 #
 
 CONFIG_FILE="$HOME/.config/wttr/wttr.conf"
 
 config_read_file() {
-  (grep -E "^${2}=" -m 1 "${1}" 2>/dev/null || echo "VAR=__UNDEFINED__") \
-    | head -n 1 | cut -d '=' -f 2-
+    (grep -E "^${2}=" -m 1 "${1}" 2>/dev/null || echo "VAR=__UNDEFINED__") \
+        | head -n 1 | cut -d '=' -f 2-
 }
 
 # credit to https://unix.stackexchange.com/questions/175648/use-config-file-for-my-shell-script
 config_get() {
-  local val="$(config_read_file "$CONFIG_FILE" "${1}")"
-  if [ "${val}" = "__UNDEFINED__" ]; then
-    val="$2"
-  fi
-  printf -- "%s" "${val}"
+    local val="$(config_read_file "$CONFIG_FILE" "${1}")"
+    if [ "${val}" = "__UNDEFINED__" ]; then
+        val="$2"
+    fi
+    printf -- "%s" "${val}"
 }
 
 check_values() {
-  local argv=("$@")
-  local val="${argv[0]}"
-  local arr=("${argv[@]:1}")
-  if ! printf '%s\0' "${arr[@]}" | grep -Fxqz -- "$val"; then
-      echo "Unrecognized value: $val. Allowed values: ${arr[@]}"
-      exit 1
-  fi
+    local argv=("$@")
+    local val="${argv[0]}"
+    local arr=("${argv[@]:1}")
+    if ! printf '%s\0' "${arr[@]}" | grep -Fxqz -- "$val"; then
+        echo "Unrecognized value: $val. Allowed values: ${arr[@]}"
+        exit 1
+    fi
 }
 
 CITY="$(config_get DEFAULT_LOCATION '')"
@@ -46,49 +46,49 @@ DEBUG=0
 # see https://unix.stackexchange.com/questions/129391/passing-named-arguments-to-shell-scripts
 # for reference
 while [ $# -gt 0 ]; do
-  case "$1" in
-    --city*|-c*)
-      if [[ "$1" != *=* ]]; then shift; fi # Value is next arg if no `=`
-      CITY="${1#*=}"
-      ;;
-    --debug)
-        DEBUG=1
-        ;;
-    --engine|-e)
-      if [[ "$1" != *=* ]]; then shift; fi
-      ENGINE="${1#*=}"
-      ;;
-    --format|f)
-      if [[ "$1" != *=* ]]; then shift; fi
-      FORMAT="${1#*=}"
-      ;;
-    --help|-h)
-      print "Meaningless help message\n"
-      exit 0
-      ;;
-    --output|-o)
-      if [[ "$1" != *=* ]]; then shift; fi
-      OUTPUT="${1#*=}"
-      ;;
-    --plain)
-        PLAIN=1
-        ;;
-    --silent)
-        SILENT=1
-        ;;
-    --text|-t)
-      OUTPUT="text"
-      ;;
-    --units|-u)
-      if [[ "$1" != *=* ]]; then shift; fi
-      UNITS="${1#*=}"
-      ;;
-    *)
-      print "Error: Invalid argument $1" "error"
-      exit 1
-      ;;
-  esac
-  shift
+    case "$1" in
+        --city*|-c*)
+            if [[ "$1" != *=* ]]; then shift; fi # Value is next arg if no `=`
+            CITY="${1#*=}"
+            ;;
+        --debug)
+                DEBUG=1
+                ;;
+        --engine|-e)
+            if [[ "$1" != *=* ]]; then shift; fi
+            ENGINE="${1#*=}"
+            ;;
+        --format|f)
+            if [[ "$1" != *=* ]]; then shift; fi
+            FORMAT="${1#*=}"
+            ;;
+        --help|-h)
+            print "Meaningless help message\n"
+            exit 0
+            ;;
+        --output|-o)
+            if [[ "$1" != *=* ]]; then shift; fi
+            OUTPUT="${1#*=}"
+            ;;
+        --plain)
+                PLAIN=1
+                ;;
+        --silent)
+                SILENT=1
+                ;;
+        --text|-t)
+            OUTPUT="text"
+            ;;
+        --units|-u)
+            if [[ "$1" != *=* ]]; then shift; fi
+            UNITS="${1#*=}"
+            ;;
+        *)
+            print "Error: Invalid argument $1" "error"
+            exit 1
+            ;;
+    esac
+    shift
 done
 
 print() {
@@ -102,7 +102,6 @@ print() {
     else
         printf -- "${msg}\n"
     fi
-
 }
 
 ALLOWED_UNITS=('u' 'm' 'M' 'auto')
