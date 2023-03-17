@@ -37,6 +37,10 @@ CITY="$(config_get DEFAULT_LOCATION '')"
 OUTPUT="$(config_get OUTPUT 'auto')"
 UNITS="$(config_get UNITS 'auto')"
 ENGINE="$(config_get ENGINE 'curl')"
+FORMAT="$(config_get FORMAT, '')"
+SILENT=0
+PLAIN=0
+DEBUG=0
 
 
 # see https://unix.stackexchange.com/questions/129391/passing-named-arguments-to-shell-scripts
@@ -47,14 +51,31 @@ while [ $# -gt 0 ]; do
       if [[ "$1" != *=* ]]; then shift; fi # Value is next arg if no `=`
       CITY="${1#*=}"
       ;;
+    --debug)
+        DEBUG=1
+        ;;
     --engine|-e)
       if [[ "$1" != *=* ]]; then shift; fi
       ENGINE="${1#*=}"
       ;;
+    --format|f)
+      if [[ "$1" != *=* ]]; then shift; fi
+      FORMAT="${1#*=}"
+      ;;
     --help|-h)
-      printf "Meaningless help message\n"
+      print "Meaningless help message\n"
       exit 0
       ;;
+    --output|-o)
+      if [[ "$1" != *=* ]]; then shift; fi
+      OUTPUT="${1#*=}"
+      ;;
+    --plain)
+        PLAIN=1
+        ;;
+    --silent)
+        SILENT=1
+        ;;
     --text|-t)
       OUTPUT="text"
       ;;
@@ -63,12 +84,26 @@ while [ $# -gt 0 ]; do
       UNITS="${1#*=}"
       ;;
     *)
-      >&2 printf "Error: Invalid argument $1\n"
+      print "Error: Invalid argument $1" "error"
       exit 1
       ;;
   esac
   shift
 done
+
+print() {
+    local msg="$1"
+    local level="$2"
+    if [[ $SILENT -eq 1 ]]; then return; fi
+    if [[ "$level" == "debug" && $DEBUG -ne 1 ]]; then return; fi
+
+    if [[ "$level" == "error" ]]; then
+        >&2 printf -- "${msg}\n"
+    else
+        printf -- "${msg}\n"
+    fi
+
+}
 
 ALLOWED_UNITS=('u' 'm' 'M' 'auto')
 ALLOWED_OUTPUTS=('auto' 'text' 'png' 'json')
@@ -76,13 +111,35 @@ ALLOWED_OUTPUTS=('auto' 'text' 'png' 'json')
 check_values "$UNITS" "${ALLOWED_UNITS[@]}"
 check_values "$OUTPUT" "${ALLOWED_OUTPUTS[@]}"
 
-URL="https://wttr.in/${CITY}"
+CITY=$(echo "$CITY" | sed -r 's/ /\+/g')
 EXEC="$ENGINE"
+URL="https://wttr.in/${CITY}"
+PARAMS=""
 
-if [[ "$OUTPUT" != "text" && "$TERM"=="xterm-kitty" ]] && which -s magick; then
+print "--${OUTPUT}--" "debug"
+
+if [[ "$OUTPUT" == "auto" || "$OUTPUT" == "png" ]] \
+    && [[ "$TERM"=="xterm-kitty" ]] \
+    && which -s magick
+then
     EXEC="kitty icat --align=left"
     URL="${URL}.png"
+elif [[ "$OUTPUT" == "png" ]]; then
+    print "Graphic output not possible in this terminal configuration\n" "error"
+    exit 1
+elif [[ "$OUTPUT" == "auto" ]]; then
+    OUTPUT="text"
 fi
 
-$EXEC $URL
+if [[ "$OUTPUT" == "text" && $PLAIN -eq 1 ]]; then
+    PARAMS="${PARAMS}T"
+elif [[ "$OUTPUT" == "json" ]]; then
+    PARAMS="format=j2"
+    if [[ $PLAIN -ne 1 ]] && which -s bat; then
+        $EXEC "${URL}?${PARAMS}" | bat -l json
+        exit 0
+    fi
+fi
+
+$EXEC "${URL}?${PARAMS}"
 
